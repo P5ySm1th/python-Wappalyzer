@@ -22,7 +22,7 @@ Install
 
 ::
 
-    $ pip install python-Wappalyzer
+    $ git clone the repo
 
 Require Python3.6 or later. 
 
@@ -99,27 +99,3 @@ resulting in incomplete results.
 It can be used by installing ``python-Wappalyzer`` with ``pip`` 
 option ``--no-deps``. Then install the required packages manually 
 (``pip install requests aiohttp cached_property dom_query pytest``).
-
-What's new
-----------
-
-in development
-^^^^^^^^^^^^^^
-* Add support for the "dom" key in technologies JSON.
-* Fix case sensitivity of the WebPage headers.
-* Provide a fallback WebPage class that works without ``lxml``. 
-
-python-Wappalyzer 0.4.0 (unreleased)
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-* Add ``python -m Wappalyzer`` entrypoint.
-* Support list of regular expressions in technologies JSON.
-* Add auto-update feature (unstable).
-
-python-Wappalyzer 0.3.x
-^^^^^^^^^^^^^^^^^^^^^^^
-* Python 3 support.
-* Async support.
-* Add confidence and version parsing.
-
-Note:
-    Last version to support Python2 was `0.2.2`.  

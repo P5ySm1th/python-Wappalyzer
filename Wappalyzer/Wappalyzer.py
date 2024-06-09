@@ -1,4 +1,3 @@
-
 from typing import Callable, Dict, Iterable, List, Any, Mapping, Set
 import json
 import logging
@@ -7,14 +6,18 @@ import re
 import os
 import pathlib
 import requests
+import warnings
+import urllib3
 
 from datetime import datetime, timedelta
 from typing import Optional
 
 from Wappalyzer.fingerprint import Fingerprint, Pattern, Technology, Category
+from Wappalyzer.data.update import get_updated_data
 from Wappalyzer.webpage import WebPage, IWebPage
 
 logger = logging.getLogger(name="python-Wappalyzer")
+urllib3.disable_warnings()
 
 class WappalyzerError(Exception):
     # unused for now
@@ -68,6 +71,7 @@ class Wappalyzer:
 
         self._confidence_regexp = re.compile(r"(.+)\\;confidence:(\d+)")
 
+
     @classmethod
     def latest(cls, technologies_file:str=None, update:bool=False) -> 'Wappalyzer':
         """
@@ -81,59 +85,40 @@ class Wappalyzer:
         custom technologies file. 
         
         If no arguments is passed, load the default ``data/technologies.json`` file
-        inside the package ressource.
+        inside the package resource.
 
         :param technologies_file: File path
         :param update: Download and use the latest ``technologies.json`` file 
             from `AliasIO/wappalyzer <https://github.com/AliasIO/wappalyzer>`_ repository.  
-        
         """
-        default=pkg_resources.resource_string(__name__, "data/technologies.json")
+        
+        default = pkg_resources.resource_string(__name__, "data/technologies.json")
         defaultobj = json.loads(default)
+        lastest_technologies_file_dict = defaultobj
 
         if technologies_file:
             with open(technologies_file, 'r', encoding='utf-8') as fd:
                 obj = json.load(fd)
+            lastest_technologies_file_dict = obj
         elif update:
-            should_update = True
-            _technologies_file: pathlib.Path
-            _files = cls._find_files(['HOME', 'APPDATA',], ['.python-Wappalyzer/technologies.json'])
-            if _files:
-                _technologies_file = pathlib.Path(_files[0])
-                last_modification_time = datetime.fromtimestamp(_technologies_file.stat().st_mtime)
-                if datetime.now() - last_modification_time < timedelta(hours=24):
-                    should_update = False
+            try:
+                lastest_technologies_file_dict = get_updated_data()
+                _technologies_file = pathlib.Path(cls._find_files(
+                    ['HOME', 'APPDATA'],
+                    ['.python-Wappalyzer/technologies.json'],
+                    create=True
+                ).pop())
+                
+                with _technologies_file.open('w', encoding='utf-8') as tfile:
+                    json.dump(lastest_technologies_file_dict, tfile, indent=4)
+                    logger.info("python-Wappalyzer technologies.json file updated")
 
-            # Get the lastest file
-            if should_update:
-                try:
-                    lastest_technologies_file=requests.get('https://raw.githubusercontent.com/AliasIO/wappalyzer/master/src/technologies.json')
-                    obj = lastest_technologies_file.json()
-                    _technologies_file = pathlib.Path(cls._find_files(
-                        ['HOME', 'APPDATA',],
-                        ['.python-Wappalyzer/technologies.json'],
-                        create = True
-                        ).pop())
-                    
-                    if obj != defaultobj:
-                        with _technologies_file.open('w', encoding='utf-8') as tfile:
-                            tfile.write(lastest_technologies_file.text)
-                        logger.info("python-Wappalyzer technologies.json file updated")
-
-                except Exception as err: # Or loads default
-                    logger.error("Could not download latest Wappalyzer technologies.json file because of error : '{}'. Using default. ".format(err))
-                    obj = defaultobj
-            else:
-                logger.debug("python-Wappalyzer technologies.json file not updated because already updated in the last 24h")
-                with _technologies_file.open('r', encoding='utf-8') as tfile:
-                    obj = json.load(tfile)
-
-            logger.info("Using technologies.json file at {}".format(_technologies_file.as_posix()))
-        else:
-            obj = defaultobj
-
+            except Exception as err:  # Or load default
+                logger.error(f"Could not download latest Wappalyzer technologies.json file because of error: '{err}'. Using default.")
         
-        return cls(categories=obj['categories'], technologies=obj['technologies'])
+        logger.info(f"Using technologies.json file at {_technologies_file.as_posix() if update else 'default location'}")
+        return cls(categories=lastest_technologies_file_dict['categories'], technologies=lastest_technologies_file_dict['technologies'])
+
 
     @staticmethod
     def _find_files(
@@ -435,7 +420,6 @@ class Wappalyzer:
         for app_name in versioned_apps:
             cat_names = self.get_categories(app_name)
             versioned_and_categorised_apps[app_name]["categories"] = cat_names
-
         return versioned_and_categorised_apps
 
     def _sort_app_versions(self, version_a: str, version_b: str) -> int:
