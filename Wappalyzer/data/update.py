@@ -107,7 +107,7 @@ def get_updated_data() :
     new_json = {**technology, **category}
     return new_json
 
-#use to test the function
+#use to test the function   
 # def main():
 #     print(get_updated_data())
 

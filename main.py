@@ -108,7 +108,7 @@ def main():
     wappalyzer.analyze_with_categories(webpage)
     analysis = wappalyzer.analyze_with_versions_and_categories(webpage)
     wordpress_plugins = check_plugin_by_wordpress(analysis)
-    # print(json.dumps({**analysis, **wordpress_plugins}, indent=4))
+    print(json.dumps({**analysis, **wordpress_plugins}, indent=4))
 
 
 if __name__ == '__main__':

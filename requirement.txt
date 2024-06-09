@@ -1,2 +1,7 @@
 chardet
+lxml
+beautifulsoup4
+cached_property
 requests
+setuptools
+aiohttp
